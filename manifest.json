@@ -7,5 +7,14 @@
       "default_popup": "templates/popup.html",
       "default_script": "static/popup.js",
       "default_icon": "leetcode.webp"
-    }
+    },
+    "content_scripts": [
+      {
+        "js": ["scripts/content.js"],
+        "matches": [
+          "https://developer.chrome.com/docs/extensions/*",
+          "https://developer.chrome.com/docs/webstore/*"
+        ]
+      }
+    ]
 }
