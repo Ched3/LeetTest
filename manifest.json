@@ -4,7 +4,8 @@
     "description": "LeetCode Test Case Generator",
     "version": "1.0",
     "action": {
-      "default_popup": "hello.html",
+      "default_popup": "templates/popup.html",
+      "default_script": "static/popup.js",
       "default_icon": "leetcode.webp"
     }
 }
