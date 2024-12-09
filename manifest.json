@@ -1,11 +1,20 @@
 {
     "manifest_version": 3,
     "name": "LeetTest",
-    "description": "LeetCode Test Case Generator",
     "version": "1.0",
+    "description": "LeetCode Test Case Generator",
     "action": {
-      "default_popup": "templates/popup.html",
-      "default_script": "static/popup.js",
-      "default_icon": "leetcode.webp"
-    }
+      "default_popup": "popup/popup.html",
+      "default_icon": "images/leetcode.webp"
+    },
+    "content_scripts": [
+      {
+        "js": ["scripts/content.js"],
+        "matches": [
+          "https://developer.chrome.com/docs/extensions/*",
+          "https://developer.chrome.com/docs/webstore/*",
+          "https://leetcode.com/*"
+        ]
+      }
+    ]
 }
