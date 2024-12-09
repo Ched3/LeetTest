@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import sqlite3
 import generator
 import converters
+from wrapper import get_constraints
 
 app = Flask(__name__)
 conn = sqlite3.connect('database.db', check_same_thread=False)

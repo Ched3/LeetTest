@@ -47,5 +47,3 @@ def get_constraints(problem_name):
 
     print(BeautifulSoup(content_html[cutoff:], "html.parser").get_text())
     return BeautifulSoup(content_html[cutoff:], "html.parser").get_text()
-
-get_constraints("two-sum")
