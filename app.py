@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import sqlite3
 import generator
 import converters
 from wrapper import get_constraints
 
 app = Flask(__name__)
+CORS(app)
+
 conn = sqlite3.connect('database.db', check_same_thread=False)
 db = conn.cursor()
 
