@@ -22,3 +22,6 @@ document.getElementById('fetch-data').addEventListener('click', async () => {
         console.error(error);
     }
 });
+
+
+console.log("Path Name: " + window.location.pathname)
