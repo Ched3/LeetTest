@@ -7,40 +7,47 @@ app = Flask(__name__)
 conn = sqlite3.connect('database.db', check_same_thread=False)
 db = conn.cursor()
 
+db.execute("""
+CREATE TABLE IF NOT EXISTS generated_code (
+    question TEXT PRIMARY KEY,
+    code TEXT NOT NULL
+)
+""")
+
+conn.commit()
+
 @app.route('/')
 def popup():
     return render_template("popup.html")
 
 @app.route('/api/data')
 def get_data():
+    question = "53rr5er344"
+    text = "placeholder"
+    
+    db.execute("SELECT code FROM generated_code WHERE question = ?", (question,))
+    result = db.fetchone()
 
-    int_gen = generator.IntGenerator(2, 10)
-    str_gen = generator.StringGenerator(int_gen, "abcdefg", False, False)
-    array_gen = generator.ArrayGenerator(int_gen, str_gen, False, False)
-    array2_gen = generator.ArrayGenerator(int_gen, array_gen, False, False)
+    if result:
+        code = result[0]
+    else:
+        code = "converters.convert_to_string(generator.IntGenerator(2, 10).generate())"
+        db.execute('INSERT INTO generated_code (question, code) VALUES (?, ?)', (question, code))
+        conn.commit()
 
-    it = array2_gen.generate()
-    return converters.convert_to_string(it)
-
-# all random test stuff for db under here
-db.execute("""
-    CREATE TABLE IF NOT EXISTS test_table (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        value TEXT NOT NULL
-    )
-""")    
-
-db.execute("INSERT INTO test_table (name, value) VALUES (?, ?)", ("Sample Name", "Sample Value"))
-db.execute("DELETE FROM test_table")
-
-conn.commit()
-
-rows = db.execute("SELECT * FROM test_table").fetchall()
-print("Table Data:")
-for row in rows:
-    print(row)
-
+    local_scope = {'text': text}
+    exec(code, globals(), local_scope)
+    text = local_scope['text']
+    
+    return text
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+    # int_gen = generator.IntGenerator(2, 10)
+    # str_gen = generator.StringGenerator(int_gen, "abcdefg", False, False)
+    # array_gen = generator.ArrayGenerator(int_gen, str_gen, False, False)
+    # array2_gen = generator.ArrayGenerator(int_gen, array_gen, False, False)
+
+    # it = array2_gen.generate()
+    # return converters.convert_to_string(it)

@@ -43,9 +43,9 @@ def get_constraints(problem_name):
 
     content_html = response.json()["data"]["question"]["content"].replace("<sup>", "^").replace("</sup>", "")
 
-    cutoff = content_html.index("Constraints:")
+    # cutoff = content_html.index("Constraints:")
 
-    print(BeautifulSoup(content_html[cutoff:], "html.parser").get_text())
-    return BeautifulSoup(content_html[cutoff:], "html.parser").get_text()
+    print(BeautifulSoup(content_html, "html.parser").get_text())
+    return BeautifulSoup(content_html, "html.parser").get_text()
 
 get_constraints("two-sum")
