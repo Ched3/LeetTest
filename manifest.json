@@ -8,7 +8,7 @@
     },
     "content_scripts": [
       {
-        "js": ["popup/scripts/content.js", "popup/popup.js"],
+        "js": ["popup/popup.js"],
         "matches": [
           "https://developer.chrome.com/docs/extensions/*",
           "https://developer.chrome.com/docs/webstore/*",
