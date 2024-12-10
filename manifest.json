@@ -4,14 +4,12 @@
     "version": "1.0",
     "description": "LeetCode Test Case Generator",
     "action": {
-      "default_popup": "popup/popup.html"
+      "default_popup": "popup.html"
     },
     "content_scripts": [
       {
-        "js": ["popup/popup.js"],
+        "js": ["scripts/popup.js"],
         "matches": [
-          "https://developer.chrome.com/docs/extensions/*",
-          "https://developer.chrome.com/docs/webstore/*",
           "https://leetcode.com/*"
         ]
       }

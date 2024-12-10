@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('fetch-data').addEventListener('click', async () => {
+        const currentUrl = window.location.href;
+        console.log(currentUrl);
         const outputDiv = document.getElementById('output');
         try {
             const response = await fetch('http://127.0.0.1:5000/api/data');
