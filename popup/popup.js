@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.text();
+            console.log(data);
             const paragraph = document.createElement('p');
             paragraph.textContent = data;
             outputDiv.appendChild(paragraph);
