@@ -11,15 +11,6 @@ CORS(app)
 conn = sqlite3.connect('database.db', check_same_thread=False)
 db = conn.cursor()
 
-db.execute("""
-CREATE TABLE IF NOT EXISTS generated_code (
-    question TEXT PRIMARY KEY,
-    code TEXT NOT NULL
-)
-""")
-
-conn.commit()
-
 @app.route('/')
 def popup():
     return render_template("popup.html")
@@ -35,17 +26,35 @@ def get_data():
     if result:
         code = result[0]
     else:
-        code = "converters.convert_to_string(generator.IntGenerator(2, 10).generate())"
+        code = "text = converters.convert_to_string(generator.IntGenerator(2, 10).generate())"
         db.execute('INSERT INTO generated_code (question, code) VALUES (?, ?)', (question, code))
         conn.commit()
-
+    print(code)
     local_scope = {'text': text}
     exec(code, globals(), local_scope)
     text = local_scope['text']
     
     return text
 
+
+def wipe_database():
+    db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_sequence';")
+    tables = db.fetchall()
+
+    for table_name in tables:
+        db.execute(f"DROP TABLE IF EXISTS {table_name[0]};")
+
+    db.execute("""
+    CREATE TABLE IF NOT EXISTS generated_code (
+        question TEXT PRIMARY KEY,
+        code TEXT NOT NULL
+    )
+    """)
+
+    conn.commit()
+
 if __name__ == "__main__":
+    # wipe_database()
     app.run(debug=True)
 
     # int_gen = generator.IntGenerator(2, 10)
