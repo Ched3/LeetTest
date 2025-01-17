@@ -1,4 +1,4 @@
-# Leettest  
+# LeetTest  
 
 Leettest is a browser extension designed to enhance your LeetCode experience. Whether you're grinding for interviews or improving your problem-solving skills, Leettest provides extra QOL to make the process smoother and more effective.  
 
