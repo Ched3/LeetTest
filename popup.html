@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetTest</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="scripts/jquery.js"></script>
+    <script src="scripts/popup.js" defer></script>
+    <script src="scripts/report.js" defer></script>
+</head>
+<body>
+    <h1>LeetTest</h1>
+    <button id="fetch-data">Generate Testcases</button>
+
+    <div id="loading" style="display: none;">Loading...</div>
+    <div id="output"></div>
+
+    <!-- dimming -->
+    <div id="overlay" style="display: none;"></div>
+
+    <!-- report button -->
+    <button id="report-issue" title="Report an Issue">!</button>
+
+    <!-- reports -->
+    <div id="report-menu" style="display: none;">
+        <h2>Report Issue With Question</h2>
+        <button class="report-reason" data-reason="testcases_not_loading">Testcases Not Loading</button>
+        <button class="report-reason" data-reason="constraints_not_met">Constraints Not Met</button>
+        <button class="report-reason" data-reason="poor_testcase_quality">Poor Testcase Quality</button>
+        <button class="report-reason" data-reason="other">Other</button>
+        <button id="close-report-menu">Close</button>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,128 @@
+/* General Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    background-color: #262626;
+    color: #f1f1f1;
+    margin: 0;
+    padding: 20px;
+    width: 220px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 24px;
+    color: #f1f1f1;
+    margin-bottom: 20px;
+}
+
+#fetch-data {
+    background-color: #3a3a3a;
+    border: 1px solid #333333;
+    color: #f1f1f1;
+    font-size: 16px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    border-radius: 4px;
+}
+
+#fetch-data:hover {
+    border-color: #2cbb5d;
+    color: #2cbb5d;
+    box-shadow: 0 0 5px rgba(44, 187, 93, 0.6);
+}
+
+#report-issue {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #3a3a3a;
+    border: 1px solid #333333;
+    color: #f1f1f1;
+    font-size: 12px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    border-radius: 4px;
+    text-align: center;
+    line-height: 12px;
+}
+
+#report-issue:hover {
+    border-color: #ef4743;
+    color: #ef4743;
+    box-shadow: 0 0 5px rgba(239, 71, 67, 0.6);
+}
+
+/* dimming */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 999;
+}
+
+#report-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #3a3a3a;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    text-align: center;
+    color: #f1f1f1;
+    width: 200px;
+    max-height: 100px;
+    overflow-y: auto; /* scroll */
+}
+
+#report-menu h2 {
+    margin-top: 5px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #f1f1f1;
+}
+
+.report-reason {
+    display: block;
+    margin: 5px auto;
+    padding: 5px 10px;
+    background-color: #3a3a3a;
+    color: #f1f1f1;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease-in-out;
+}
+
+.report-reason:hover {
+    background-color: #444;
+    border-color: #ef4743;
+    color: #ef4743;
+}
+
+#close-report-menu {
+    margin-top: 5px;
+    padding: 3px 10px;
+    background-color: #3a3a3a;
+    color: #f1f1f1;
+    border: 1px solid #333333;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease-in-out;
+}
+
+#close-report-menu:hover {
+    background-color: #444;
+    border-color: #f1f1f1;
+}
