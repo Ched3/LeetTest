@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LeetTest",
-  "version": "1.0",
+  "version": "1.2.1",
   "description": "LeetCode Test Case Generator",
   "action": {
     "default_popup": "popup.html"
@@ -12,10 +12,10 @@
     }
   },
   "permissions": ["tabs"], 
-  "host_permissions": ["https://kohlenz.com/*"],
+  "host_permissions": ["https://kohlenz.com/*", "http://127.0.0.1:5000/*"],
   "content_scripts": [
     {
-      "js": ["scripts/popup.js", "scripts/inject.js", "scripts/report.js", "scripts/modify.js"],
+      "js": ["scripts/inject.js", "scripts/modify.js"],
       "matches": [
         "https://leetcode.com/problems/*"
       ]

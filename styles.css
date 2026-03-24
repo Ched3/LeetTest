@@ -15,6 +15,36 @@ h1 {
     margin-bottom: 20px;
 }
 
+#update-required {
+    background-color: #3a3a3a;
+    border: 1px solid #ef4743;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+#update-message {
+    margin: 0 0 8px 0;
+    color: #f1f1f1;
+    font-size: 13px;
+}
+
+#update-now {
+    background-color: #ef4743;
+    border: 1px solid #ef4743;
+    color: #ffffff;
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border-radius: 4px;
+}
+
+#update-now:hover {
+    background-color: #d63f3c;
+    border-color: #d63f3c;
+}
+
 #fetch-data {
     background-color: #3a3a3a;
     border: 1px solid #333333;
@@ -30,6 +60,12 @@ h1 {
     border-color: #2cbb5d;
     color: #2cbb5d;
     box-shadow: 0 0 5px rgba(44, 187, 93, 0.6);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 #report-issue {

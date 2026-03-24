@@ -4,8 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeReportMenuButton = document.getElementById('close-report-menu');
     const overlay = document.getElementById('overlay');
     const outputDiv = document.getElementById('output');
+    const backendBaseUrl = (window.LEETTEST_BACKEND_BASE_URL || 'https://kohlenz.com/leettest').replace(/\/+$/, '');
 
     reportIssueButton.addEventListener('click', () => {
+        if (window.LEETTEST_UPDATE_STATE && window.LEETTEST_UPDATE_STATE.required) {
+            return;
+        }
         reportMenu.style.display = 'block';
         overlay.style.display = 'block';
     });
@@ -18,24 +22,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportReasonButtons = document.querySelectorAll('.report-reason');
     reportReasonButtons.forEach(button => {
         button.addEventListener('click', () => {
+            if (window.LEETTEST_UPDATE_STATE && window.LEETTEST_UPDATE_STATE.required) {
+                return;
+            }
+
             const reason = button.getAttribute('data-reason');
+            const extensionVersion = window.LEETTEST_EXTENSION_VERSION || chrome.runtime.getManifest().version;
 
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 if (tabs && tabs.length > 0) {
                     const activeTab = tabs[0];
                     const activeTabUrl = activeTab.url.split("/")[4];
 
-                    fetch('https://kohlenz.com/leettest/report', {
+                    fetch(`${backendBaseUrl}/report`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-Extension-Version': extensionVersion
                         },
                         body: JSON.stringify({
                             problem_name: activeTabUrl,
                             issue_type: reason
                         }),
                     })
-                    .then(response => {
+                    .then(async response => {
+                        const data = await response.json().catch(() => ({}));
+                        if (window.LEETTEST_API && window.LEETTEST_API.isUpdateRequiredResponse(response.status, data)) {
+                            window.LEETTEST_API.setUpdateRequiredState(data.message);
+                            reportMenu.style.display = 'none';
+                            overlay.style.display = 'none';
+                            return;
+                        }
+
                         if (response.ok) {
                             const successMessage = document.createElement('p');
                             successMessage.textContent = 'Report submitted successfully!';
@@ -47,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }, 5000);
                         } else {
                             const errorMessage = document.createElement('p');
-                            errorMessage.textContent = 'Failed to submit report.';
+                            errorMessage.textContent = data.message || 'Failed to submit report.';
                             errorMessage.style.color = 'rgb(239, 71, 67)';
                             outputDiv.appendChild(errorMessage);
 
