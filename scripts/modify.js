@@ -1,11 +1,17 @@
+function getLeetCodeProblemSlug() {
+    const pathname = window.location.pathname || '';
+    const match = pathname.match(/^\/problems\/([^/]+)/);
+    return match ? match[1] : '';
+}
+
 (async function () {
-    let lastUrl = window.location.href;
+    let lastProblemSlug = getLeetCodeProblemSlug();
 
     async function updateCompany() {
         fetch(chrome.runtime.getURL('scripts/companies.json'))
             .then(response => response.json())
             .then(data => {
-                const url = window.location.href.split("/")[4];
+                const url = getLeetCodeProblemSlug();
 
                 const existingButton = document.querySelector('.custom-company-button');
                 if (existingButton) existingButton.remove();
@@ -28,12 +34,12 @@
     updateCompany();
 
     const observer = new MutationObserver(() => {
-        const currentUrl = window.location.href;
-        if (currentUrl !== lastUrl) {
-            lastUrl = currentUrl;
-            if (currentUrl.includes('leetcode.com/problems/')) {
-                updateCompany();
-            }
+        const slug = getLeetCodeProblemSlug();
+        if (slug && slug !== lastProblemSlug) {
+            lastProblemSlug = slug;
+            updateCompany();
+        } else if (!slug && lastProblemSlug) {
+            lastProblemSlug = '';
         }
     });
 
@@ -41,32 +47,38 @@
 })();
 
 (async function () {
+    let lastProblemSlug = getLeetCodeProblemSlug();
+
     async function updateRating() {
-    const activeTabUrl = window.location.href.split("/")[4];
-
-    try {
-        const apiUrl = `https://kohlenz.com/leettest/rating/${activeTabUrl}`;
-        const ratingResponse = await fetch(apiUrl);
-        const data = await ratingResponse.json();
-        const rating = data.rating;
-
-        const targetDiv = document.querySelector(
-        '.relative.inline-flex.items-center.justify-center.text-caption.px-2.py-1.gap-1.rounded-full.bg-fill-secondary.text-difficulty-hard.dark\\:text-difficulty-hard, ' +
-        '.relative.inline-flex.items-center.justify-center.text-caption.px-2.py-1.gap-1.rounded-full.bg-fill-secondary.text-difficulty-medium.dark\\:text-difficulty-medium, ' +
-        '.relative.inline-flex.items-center.justify-center.text-caption.px-2.py-1.gap-1.rounded-full.bg-fill-secondary.text-difficulty-easy.dark\\:text-difficulty-easy'
-        );
-
-        if (targetDiv) {
-            let difficulty = '';
-        if (targetDiv.classList.contains('text-difficulty-hard')) {
-            difficulty = 'Hard';
-        } else if (targetDiv.classList.contains('text-difficulty-medium')) {
-            difficulty = 'Medium';
-        } else if (targetDiv.classList.contains('text-difficulty-easy')) {
-            difficulty = 'Easy';
+        const activeTabUrl = getLeetCodeProblemSlug();
+        if (!activeTabUrl) {
+            return;
         }
-            targetDiv.textContent = `${difficulty} - ${rating}`;
-        }
+        const backendBaseUrl = (window.LEETTEST_BACKEND_BASE_URL || 'https://kohlenz.com/leettest').replace(/\/+$/, '');
+
+        try {
+            const apiUrl = `${backendBaseUrl}/rating/${activeTabUrl}`;
+            const ratingResponse = await fetch(apiUrl);
+            const data = await ratingResponse.json();
+            const rating = data.rating;
+
+            const targetDiv = document.querySelector(
+                '.relative.inline-flex.items-center.justify-center.text-caption.px-2.py-1.gap-1.rounded-full.bg-fill-secondary.text-difficulty-hard.dark\\:text-difficulty-hard, ' +
+                '.relative.inline-flex.items-center.justify-center.text-caption.px-2.py-1.gap-1.rounded-full.bg-fill-secondary.text-difficulty-medium.dark\\:text-difficulty-medium, ' +
+                '.relative.inline-flex.items-center.justify-center.text-caption.px-2.py-1.gap-1.rounded-full.bg-fill-secondary.text-difficulty-easy.dark\\:text-difficulty-easy'
+            );
+
+            if (targetDiv) {
+                let difficulty = '';
+                if (targetDiv.classList.contains('text-difficulty-hard')) {
+                    difficulty = 'Hard';
+                } else if (targetDiv.classList.contains('text-difficulty-medium')) {
+                    difficulty = 'Medium';
+                } else if (targetDiv.classList.contains('text-difficulty-easy')) {
+                    difficulty = 'Easy';
+                }
+                targetDiv.textContent = `${difficulty} - ${rating}`;
+            }
         } catch (error) {
             console.error('failed to get rating');
         }
@@ -74,9 +86,14 @@
 
     updateRating();
 
+    // Refetch only when the problem slug changes (same problem, different tabs/paths → no request).
     const observer = new MutationObserver(() => {
-        if (window.location.href.includes('leetcode.com/problems/')) {
+        const slug = getLeetCodeProblemSlug();
+        if (slug && slug !== lastProblemSlug) {
+            lastProblemSlug = slug;
             updateRating();
+        } else if (!slug && lastProblemSlug) {
+            lastProblemSlug = '';
         }
     });
 

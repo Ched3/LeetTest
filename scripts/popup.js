@@ -6,14 +6,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateRequiredDiv = document.getElementById('update-required');
     const updateMessage = document.getElementById('update-message');
     const updateNowButton = document.getElementById('update-now');
-    // Change this one value for prod vs local testing.
-    const BACKEND_BASE_URL = 'https://kohlenz.com/leettest';
     const EXTENSION_UPDATE_URL = 'https://chromewebstore.google.com/detail/leettest/diinamlcdbbpfebknmhajjaijpflnaoe';
-    const normalizedBackendBaseUrl = BACKEND_BASE_URL.replace(/\/+$/, '');
+    const normalizedBackendBaseUrl = (window.LEETTEST_BACKEND_BASE_URL || 'https://kohlenz.com/leettest').replace(/\/+$/, '');
     const VERSION_CHECK_URL = `${normalizedBackendBaseUrl}/version`;
     const extensionVersion = chrome.runtime.getManifest().version;
-
-    window.LEETTEST_BACKEND_BASE_URL = normalizedBackendBaseUrl;
     window.LEETTEST_EXTENSION_VERSION = extensionVersion;
     window.LEETTEST_UPDATE_STATE = { required: false };
 
