@@ -27,6 +27,9 @@
     "96": "icons/icon-96.png",
     "128": "icons/icon-128.png"
   },
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
   "web_accessible_resources": [
     {
       "resources": [

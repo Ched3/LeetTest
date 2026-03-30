@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="scripts/generator.js"></script>
+</head>
+<body>
+<script>
+window.addEventListener('message', (event) => {
+  const code = event.data && event.data.code;
+  if (typeof code !== 'string') return;
+
+  try {
+    const fn = new Function(code);
+    const result = fn();
+    event.source.postMessage({ success: true, data: result }, event.origin);
+  } catch (err) {
+    event.source.postMessage({ success: false, error: err.message }, event.origin);
+  }
+});
+</script>
+</body>
+</html>

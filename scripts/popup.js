@@ -103,19 +103,46 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'X-Extension-Version': extensionVersion
                             }
                         });
-                        const testCases = await response.json();
 
-                        if (window.LEETTEST_API.isUpdateRequiredResponse(response.status, testCases)) {
-                            setUpdateRequiredState(testCases.message);
+                        if (response.status === 426) {
+                            const errPayload = await response.json();
+                            setUpdateRequiredState(errPayload.message);
                             return;
                         }
 
                         if (!response.ok) {
-                            throw new Error(testCases.message || 'Failed to fetch test cases.');
+                            const errPayload = await response.json();
+                            throw new Error(errPayload.message || 'Failed to fetch generator code.');
                         }
 
+                        const generatorCode = await response.text();
+
+                        const sandboxFrame = document.getElementById('sandbox-frame');
+                        const testCases = await new Promise((resolve, reject) => {
+                            let settled = false;
+                            const handler = (event) => {
+                                if (settled) return;
+                                settled = true;
+                                window.removeEventListener('message', handler);
+                                clearTimeout(timer);
+                                if (event.data && event.data.success) {
+                                    resolve(event.data.data);
+                                } else {
+                                    reject(new Error((event.data && event.data.error) || 'Sandbox execution failed'));
+                                }
+                            };
+                            const timer = setTimeout(() => {
+                                if (settled) return;
+                                settled = true;
+                                window.removeEventListener('message', handler);
+                                reject(new Error('Test case generation timed out'));
+                            }, 10000);
+                            window.addEventListener('message', handler);
+                            sandboxFrame.contentWindow.postMessage({ code: generatorCode }, '*');
+                        });
+
                         loadingDiv.style.display = 'none';
-                        outputDiv.innerHTML = `<br>Test cases fetched successfully.`;
+                        outputDiv.innerHTML = `<br>Test cases generated successfully.`;
 
                         chrome.tabs.sendMessage(
                             activeTab.id,
@@ -135,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         );
                     } catch (error) {
                         loadingDiv.style.display = 'none';
-                        outputDiv.innerHTML = `<p style="color: red;">Error fetching test cases: ${error.message}</p>`;
+                        outputDiv.innerHTML = `<p style="color: red;">Error generating test cases: ${error.message}</p>`;
                         console.error(error);
                     }
                 }
