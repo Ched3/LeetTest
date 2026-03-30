@@ -181,6 +181,8 @@ button:disabled {
     border-top-color: #2cbb5d;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+    display: block;
+    margin: 0 auto;
 }
 
 @keyframes spin {
