@@ -13,9 +13,29 @@ document.addEventListener('DOMContentLoaded', () => {
     window.LEETTEST_EXTENSION_VERSION = extensionVersion;
     window.LEETTEST_UPDATE_STATE = { required: false };
 
+    const timerSpan = document.getElementById('timer');
+    let timerInterval = null;
+
+    const startTimer = () => {
+        const start = performance.now();
+        timerSpan.textContent = '0.0s';
+        timerInterval = setInterval(() => {
+            const elapsed = ((performance.now() - start) / 1000).toFixed(1);
+            timerSpan.textContent = `${elapsed}s`;
+        }, 100);
+    };
+
+    const stopTimer = () => {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    };
+
     const setUpdateRequiredState = (message) => {
         window.LEETTEST_UPDATE_STATE.required = true;
         loadingDiv.style.display = 'none';
+        stopTimer();
         updateRequiredDiv.style.display = 'block';
         updateMessage.textContent = message || 'A new version of LeetTest is required.';
         fetchButton.disabled = true;
@@ -88,12 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         outputDiv.innerHTML = '';
         loadingDiv.style.display = 'block';
+        startTimer();
 
         chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
             if (tabs && tabs.length > 0) {
                 const activeTab = tabs[0];
                 if (!activeTab.url.includes('leetcode.com/problems/')) {
                     loadingDiv.style.display = 'none';
+                    stopTimer();
                     outputDiv.innerHTML = `<p style="color: red;">Please be on a LeetCode problem page.</p>`;
                 } else {
                     try {
@@ -106,6 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (response.status === 426) {
                             const errPayload = await response.json();
+                            stopTimer();
                             setUpdateRequiredState(errPayload.message);
                             return;
                         }
@@ -115,8 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             throw new Error(errPayload.message || 'Failed to fetch generator code.');
                         }
 
-                        const responseData = await response.json();
-                        const generatorCode = responseData.code;
+                        const responseText = await response.text();
+                        let generatorCode;
+                        try {
+                            const parsed = JSON.parse(responseText);
+                            generatorCode = parsed.code || responseText;
+                        } catch {
+                            generatorCode = responseText;
+                        }
 
                         const sandboxFrame = document.getElementById('sandbox-frame');
                         const testCases = await new Promise((resolve, reject) => {
@@ -143,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         loadingDiv.style.display = 'none';
+                        stopTimer();
                         outputDiv.innerHTML = `<br>Test cases generated successfully.`;
 
                         chrome.tabs.sendMessage(
@@ -163,12 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         );
                     } catch (error) {
                         loadingDiv.style.display = 'none';
+                        stopTimer();
                         outputDiv.innerHTML = `<p style="color: red;">Error generating test cases: ${error.message}</p>`;
                         console.error(error);
                     }
                 }
             } else {
                 loadingDiv.style.display = 'none';
+                stopTimer();
                 outputDiv.innerHTML = '<p style="color: red;">No active tab found.</p>';
                 console.error('no active tab');
             }

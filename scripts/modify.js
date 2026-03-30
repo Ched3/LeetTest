@@ -54,13 +54,15 @@ function getLeetCodeProblemSlug() {
         if (!activeTabUrl) {
             return;
         }
-        const backendBaseUrl = (window.LEETTEST_BACKEND_BASE_URL || 'https://kohlenz.com/leettest').replace(/\/+$/, '');
-
         try {
-            const apiUrl = `${backendBaseUrl}/rating/${activeTabUrl}`;
-            const ratingResponse = await fetch(apiUrl);
-            const data = await ratingResponse.json();
-            const rating = data.rating;
+            const response = await chrome.runtime.sendMessage({
+                action: 'fetchRating',
+                slug: activeTabUrl
+            });
+            if (!response || !response.success) {
+                throw new Error(response?.error || 'Rating fetch failed');
+            }
+            const rating = response.data.rating;
 
             const targetDiv = document.querySelector(
                 '.relative.inline-flex.items-center.justify-center.text-caption.px-2.py-1.gap-1.rounded-full.bg-fill-secondary.text-difficulty-hard.dark\\:text-difficulty-hard, ' +
