@@ -115,7 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             throw new Error(errPayload.message || 'Failed to fetch generator code.');
                         }
 
-                        const generatorCode = await response.text();
+                        const responseData = await response.json();
+                        const generatorCode = responseData.code;
 
                         const sandboxFrame = document.getElementById('sandbox-frame');
                         const testCases = await new Promise((resolve, reject) => {
