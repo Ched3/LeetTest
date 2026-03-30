@@ -240,7 +240,7 @@ function generateInt(minValue, maxValue) {
   }
   
   function convertToString(item) {
-    if (item === null || item === undefined) return "null";
+    if (item === null || item === undefined) return "[]";
     if (typeof item === "number" || typeof item === "boolean") return String(item);
     if (typeof item === "string") return '"' + item + '"';
     if (item instanceof TreeNode) return treeToString(item);
