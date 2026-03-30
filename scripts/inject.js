@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         const isSourceReady = await ensureSourceActiveAndWait(3000);
         if (!isSourceReady) {
-            sendResponse({ success: false, reason: 'source tab not active' });
+            sendResponse({ success: false, reason: 'Click on the testcases tab' });
             return;
         }
 
