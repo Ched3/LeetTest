@@ -56,9 +56,80 @@ const ensureSourceActiveAndWait = async (timeoutMs = 3000) => {
 };
 
 const normalizeLines = (testCases) => {
-    if (Array.isArray(testCases)) return testCases;
-    if (testCases && Array.isArray(testCases.lines)) return testCases.lines;
+    const isRobotProgramObject = (x) =>
+        x &&
+        typeof x === 'object' &&
+        Array.isArray(x.methods) &&
+        Array.isArray(x.params);
+
+    const isRobotProgramPair = (x) =>
+        Array.isArray(x) &&
+        x.length === 2 &&
+        Array.isArray(x[0]) &&
+        Array.isArray(x[1]);
+
+    const formatRobotProgram = (program) => {
+        // Each testcase becomes exactly 2 lines:
+        // 1) methods JSON
+        // 2) params JSON
+        if (isRobotProgramObject(program)) {
+            return [JSON.stringify(program.methods), JSON.stringify(program.params)];
+        }
+        if (isRobotProgramPair(program)) {
+            return [JSON.stringify(program[0]), JSON.stringify(program[1])];
+        }
+        return [JSON.stringify(program)];
+    };
+
+    if (Array.isArray(testCases)) {
+        // Shape 1: [{methods: [...], params: [...]}, ...]
+        if (testCases.length > 0 && isRobotProgramObject(testCases[0])) {
+            return testCases.flatMap((p) => formatRobotProgram(p));
+        }
+
+        // Shape 2: [[[...methods...],[...params...]], ...] (pair form)
+        if (testCases.length > 0 && isRobotProgramPair(testCases[0])) {
+            return testCases.flatMap((p) => formatRobotProgram(p));
+        }
+
+        // Shape 3: [methodsArray, paramsArray] (single testcase)
+        if (isRobotProgramPair(testCases)) {
+            return formatRobotProgram(testCases);
+        }
+
+        // Generic: already an array of strings → treat each string as one line.
+        const allStrings = testCases.every((item) => typeof item === 'string');
+        if (allStrings) return testCases;
+
+        // Fallback: stringify the whole thing as JSON (best-effort).
+        return [JSON.stringify(testCases, null, 2)];
+    }
+
+    if (testCases && Array.isArray(testCases.lines)) {
+        // If `lines` already carries robot-program shapes, format them as 2-line testcases.
+        if (testCases.lines.length > 0 && isRobotProgramObject(testCases.lines[0])) {
+            return testCases.lines.flatMap((p) => formatRobotProgram(p));
+        }
+        if (testCases.lines.length > 0 && isRobotProgramPair(testCases.lines[0])) {
+            return testCases.lines.flatMap((p) => formatRobotProgram(p));
+        }
+
+        const allStrings = testCases.lines.every((item) => typeof item === 'string');
+        if (allStrings) return testCases.lines;
+        return [JSON.stringify(testCases.lines, null, 2)];
+    }
+
     if (typeof testCases === 'string') return testCases.split('\n');
+
+    if (testCases && isRobotProgramObject(testCases)) {
+        return formatRobotProgram(testCases);
+    }
+
+    if (testCases && Array.isArray(testCases.methods) && Array.isArray(testCases.params)) {
+        return [JSON.stringify(testCases.methods), JSON.stringify(testCases.params)];
+    }
+
+    if (testCases && typeof testCases === 'object') return [JSON.stringify(testCases, null, 2)];
     return [String(testCases)];
 };
 

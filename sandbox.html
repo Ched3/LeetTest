@@ -5,34 +5,67 @@
   <script src="scripts/generator.js"></script>
 </head>
 <body>
-<script>
-window.addEventListener('message', (event) => {
-  const code = event.data && event.data.code;
-  if (typeof code !== 'string') return;
-
-  console.log('[sandbox] received code to execute:', code);
-
-  try {
-    const fn = new Function(code + '\nreturn typeof result !== "undefined" ? result : undefined;');
-    const result = fn();
-    console.log('[sandbox] raw result:', result);
-
-    const lines = [];
-    for (let i = 0; i < result.length; i++) {
-      const testCase = result[i];
-      for (let j = 0; j < testCase.length; j++) {
-        lines.push(convertToString(testCase[j]));
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <script src="scripts/generator.js"></script>
+  </head>
+  <body>
+  <script>
+  window.addEventListener('message', (event) => {
+    const code = event.data && event.data.code;
+    if (typeof code !== 'string') return;
+  
+    console.log('[sandbox] received code to execute:', code);
+  
+    try {
+      // Execute user code in isolated scope ONCE
+      const fn = new Function(`
+        "use strict";
+        ${code}
+        return typeof result !== "undefined" ? result : undefined;
+      `);
+  
+      const result = fn();
+  
+      console.log('[sandbox] raw result:', result);
+  
+      if (!Array.isArray(result)) {
+        throw new Error("Generated result must be an array");
       }
+  
+      const lines = [];
+  
+      for (let i = 0; i < result.length; i++) {
+        const testCase = result[i];
+  
+        if (!Array.isArray(testCase)) {
+          throw new Error("Each test case must be an array");
+        }
+  
+        for (let j = 0; j < testCase.length; j++) {
+          lines.push(convertToString(testCase[j]));
+        }
+      }
+  
+      const output = lines.join('\n');
+  
+      console.log('[sandbox] serialized output:', output);
+  
+      event.source.postMessage(
+        { success: true, data: output },
+        event.origin
+      );
+  
+    } catch (err) {
+      console.error('[sandbox] execution error:', err);
+      event.source.postMessage(
+        { success: false, error: err.message },
+        event.origin
+      );
     }
-
-    const output = lines.join('\n');
-    console.log('[sandbox] serialized output:', output);
-    event.source.postMessage({ success: true, data: output }, event.origin);
-  } catch (err) {
-    console.error('[sandbox] execution error:', err);
-    event.source.postMessage({ success: false, error: err.message }, event.origin);
-  }
-});
-</script>
+  });
+  </script>
 </body>
 </html>
