@@ -11,9 +11,10 @@
       "id": "leet@test.com"
     }
   },
-  "permissions": ["tabs"],
+  "permissions": ["tabs", "scripting"],
   "background": {
-    "service_worker": "scripts/background.js"
+    "service_worker": "scripts/background.js",
+    "scripts": ["scripts/background.js"]
   },
   "host_permissions": [
     "https://kohlenz.com/*",
@@ -36,9 +37,6 @@
     "48": "icons/icon-48.png",
     "96": "icons/icon-96.png",
     "128": "icons/icon-128.png"
-  },
-  "sandbox": {
-    "pages": ["sandbox.html"]
   },
   "web_accessible_resources": [
     {

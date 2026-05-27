@@ -147,29 +147,43 @@ document.addEventListener('DOMContentLoaded', () => {
                             generatorCode = responseText;
                         }
 
-                        const sandboxFrame = document.getElementById('sandbox-frame');
-                        const testCases = await new Promise((resolve, reject) => {
-                            let settled = false;
-                            const handler = (event) => {
-                                if (settled) return;
-                                settled = true;
-                                window.removeEventListener('message', handler);
-                                clearTimeout(timer);
-                                if (event.data && event.data.success) {
-                                    resolve(event.data.data);
-                                } else {
-                                    reject(new Error((event.data && event.data.error) || 'Sandbox execution failed'));
-                                }
-                            };
-                            const timer = setTimeout(() => {
-                                if (settled) return;
-                                settled = true;
-                                window.removeEventListener('message', handler);
-                                reject(new Error('Test case generation timed out'));
-                            }, 10000);
-                            window.addEventListener('message', handler);
-                            sandboxFrame.contentWindow.postMessage({ code: generatorCode }, '*');
+                        await chrome.scripting.executeScript({
+                            target: { tabId: activeTab.id },
+                            world: 'MAIN',
+                            files: ['scripts/generator.js']
                         });
+
+                        const [{ result: outcome }] = await chrome.scripting.executeScript({
+                            target: { tabId: activeTab.id },
+                            world: 'MAIN',
+                            args: [generatorCode],
+                            func: (code) => {
+                                try {
+                                    const fn = new Function(`"use strict";\n${code}\nreturn typeof result !== "undefined" ? result : undefined;`);
+                                    const result = fn();
+                                    if (!Array.isArray(result)) {
+                                        return { success: false, error: 'Generated result must be an array' };
+                                    }
+                                    const lines = [];
+                                    for (const testCase of result) {
+                                        if (!Array.isArray(testCase)) {
+                                            return { success: false, error: 'Each test case must be an array' };
+                                        }
+                                        for (const item of testCase) {
+                                            lines.push(convertToString(item));
+                                        }
+                                    }
+                                    return { success: true, data: lines.join('\n') };
+                                } catch (err) {
+                                    return { success: false, error: err && err.message ? err.message : String(err) };
+                                }
+                            }
+                        });
+
+                        if (!outcome || !outcome.success) {
+                            throw new Error((outcome && outcome.error) || 'Test case generation failed');
+                        }
+                        const testCases = outcome.data;
 
                         loadingDiv.style.display = 'none';
                         stopTimer();
