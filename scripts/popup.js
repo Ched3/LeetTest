@@ -7,11 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateMessage = document.getElementById('update-message');
     const updateNowButton = document.getElementById('update-now');
     const manifest = chrome.runtime.getManifest();
-    const isFirefox = typeof browser !== 'undefined' && typeof browser.runtime.getBrowserInfo === 'function';
-    const geckoId = manifest.browser_specific_settings && manifest.browser_specific_settings.gecko && manifest.browser_specific_settings.gecko.id;
-    const EXTENSION_UPDATE_URL = isFirefox && geckoId
-        ? `https://addons.mozilla.org/firefox/addon/${encodeURIComponent(geckoId)}/`
-        : 'https://chromewebstore.google.com/detail/leettest/diinamlcdbbpfebknmhajjaijpflnaoe';
+    const EXTENSION_UPDATE_URL = window.LEETTEST_UI.storeUrl();
     const normalizedBackendBaseUrl = (window.LEETTEST_BACKEND_BASE_URL || 'https://kohlenz.com/leettest').replace(/\/+$/, '');
     const VERSION_CHECK_URL = `${normalizedBackendBaseUrl}/version`;
     const extensionVersion = manifest.version;
@@ -243,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             showStatus(outputDiv, 'success', `Pasted into the Testcase tab in ${timerSpan.textContent}.`);
+            window.LEETTEST_UI.recordSuccess();
         } catch (error) {
             console.error(error);
             showError(`Couldn't generate testcases: ${error.message}`);

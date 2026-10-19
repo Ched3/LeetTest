@@ -453,8 +453,48 @@ button:disabled {
 }
 
 .footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     margin-top: 14px;
-    text-align: center;
     font-size: 11px;
     color: #666;
+}
+
+.footer-link {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.footer-link:hover {
+    color: var(--amber);
+}
+
+.review-card {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 161, 22, 0.08);
+    border: 1px solid rgba(255, 161, 22, 0.4);
+    border-radius: var(--radius);
+}
+
+.review-card p {
+    margin: 0 0 8px;
+}
+
+.review-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.button--ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+}
+
+.button--ghost:hover:not(:disabled) {
+    color: var(--text);
+    background: var(--surface-2);
 }
