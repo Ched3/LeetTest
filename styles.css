@@ -388,6 +388,15 @@ button:disabled {
     border-top: 1px solid var(--border);
 }
 
+.setting--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.setting--disabled .switch {
+    cursor: not-allowed;
+}
+
 .setting-body {
     display: flex;
     flex-direction: column;

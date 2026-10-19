@@ -18,7 +18,6 @@
     "scripts": ["scripts/background.js"]
   },
   "host_permissions": [
-    "https://kohlenz.com/*",
     "https://leetcode.com/*"
   ],
   "content_scripts": [
