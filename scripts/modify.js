@@ -1,4 +1,5 @@
 const DEFAULT_SETTINGS = {
+    showDifficulty: true,
     showRating: true,
     showCompanies: true
 };
@@ -77,9 +78,15 @@ function getDifficultyLabel(badge) {
     };
 
     // Rewrites the difficulty badge ("Medium" -> "Medium - 1834") or restores it when disabled.
+    // With showDifficulty off the badge (and its rating) is hidden entirely.
     const applyRating = () => {
         const badge = document.querySelector(DIFFICULTY_BADGE_SELECTOR);
         if (!badge) return;
+
+        const display = settings.showDifficulty ? '' : 'none';
+        if (badge.style.display !== display) {
+            badge.style.display = display;
+        }
 
         const difficulty = getDifficultyLabel(badge);
         const desired = settings.showRating && ratingText !== null
@@ -130,11 +137,17 @@ function getDifficultyLabel(badge) {
         applyAll();
         if (!slug) return;
 
+        // Company tags are local data, so show them right away instead of waiting on the
+        // rating request, which can take a while when the backend pre-generates code.
+        loadCompanies().then(() => {
+            if (slug === currentSlug) applyCompanies();
+        });
+
         // Always fetch: the rating request also warms the backend's generator cache for this problem.
-        const [rating] = await Promise.all([fetchRating(slug), loadCompanies()]);
+        const rating = await fetchRating(slug);
         if (slug !== currentSlug) return; // user navigated away mid-request
         ratingText = rating;
-        applyAll();
+        applyRating();
     };
 
     extensionApi.storage.onChanged.addListener((changes, area) => {

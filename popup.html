@@ -37,7 +37,7 @@
         </div>
 
         <div id="permission-required" class="banner banner--warning" hidden>
-            <p>LeetTest needs access to leetcode.com and its server to work.</p>
+            <p>LeetTest needs access to leetcode.com to work.</p>
             <button id="grant-permissions" class="button button--warning button--small">Grant access</button>
         </div>
 
@@ -114,6 +114,13 @@
         </header>
 
         <div class="settings-list">
+            <label class="setting">
+                <span class="setting-body">
+                    <span class="setting-title">Show difficulty</span>
+                    <span class="setting-desc">Turn off to hide Easy / Medium / Hard on problem pages</span>
+                </span>
+                <input type="checkbox" class="switch" data-setting="showDifficulty">
+            </label>
             <label class="setting">
                 <span class="setting-body">
                     <span class="setting-title">Show numeric rating</span>
