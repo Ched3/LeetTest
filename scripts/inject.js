@@ -1,6 +1,8 @@
 const SOURCE_LABEL_SELECTOR = 'span';
 const SOURCE_ACTIVE_CLASS = 'bg-fill-2';
 const SOURCE_BUTTON_CONTAINER_SELECTOR = 'div.cursor-pointer';
+const TAB_BUTTON_SELECTOR = '.flexlayout__tab_button';
+const TAB_SELECTED_CLASS = 'flexlayout__tab_button--selected';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -14,9 +16,60 @@ const waitForElement = async (selector, timeoutMs = 3000) => {
     return null;
 };
 
+const waitFor = async (predicate, timeoutMs = 3000) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        if (predicate()) return true;
+        await sleep(100);
+    }
+    return false;
+};
+
+// Hidden tabs stay mounted in LeetCode's flexlayout, so only consider rendered elements.
+const isVisible = (el) => !!(el && el.getClientRects().length > 0);
+
+// flexlayout tabs ignore a bare .click(); they listen for pointer/mouse down.
+const pressElement = (el) => {
+    const opts = { bubbles: true, cancelable: true, view: window, button: 0 };
+    el.dispatchEvent(new PointerEvent('pointerdown', opts));
+    el.dispatchEvent(new MouseEvent('mousedown', opts));
+    el.dispatchEvent(new PointerEvent('pointerup', opts));
+    el.dispatchEvent(new MouseEvent('mouseup', opts));
+    el.dispatchEvent(new MouseEvent('click', opts));
+};
+
+const findTestcaseTabButton = () => {
+    const byId = document.getElementById('testcase_tab');
+    if (byId) return byId.closest(TAB_BUTTON_SELECTOR) || byId;
+
+    return Array.from(document.querySelectorAll(TAB_BUTTON_SELECTOR))
+        .find((el) => /^testcase/i.test(el.textContent.trim())) || null;
+};
+
+const isTabSelected = (tabButton) => !!(tabButton && tabButton.classList.contains(TAB_SELECTED_CLASS));
+
+const ensureTestcaseTabActive = async (timeoutMs = 3000) => {
+    const tabButton = findTestcaseTabButton();
+    if (!tabButton) {
+        console.error('testcase tab not found');
+        return false;
+    }
+
+    if (isTabSelected(tabButton)) return true;
+
+    pressElement(tabButton);
+    const switched = await waitFor(() => isTabSelected(findTestcaseTabButton()), timeoutMs);
+    if (switched) {
+        console.log('switched to testcase tab');
+    } else {
+        console.error('testcase tab switch timeout');
+    }
+    return switched;
+};
+
 const findSourceButton = () => {
     const labels = Array.from(document.querySelectorAll(SOURCE_LABEL_SELECTOR));
-    const sourceLabel = labels.find((el) => el.textContent && el.textContent.trim() === 'Source');
+    const sourceLabel = labels.find((el) => el.textContent && el.textContent.trim() === 'Source' && isVisible(el));
     if (!sourceLabel) {
         return null;
     }
@@ -29,26 +82,22 @@ const isSourceActive = (sourceButton) => {
 };
 
 const ensureSourceActiveAndWait = async (timeoutMs = 3000) => {
-    const sourceButton = findSourceButton();
-    if (!sourceButton) {
+    // The Source toggle only renders once the Testcase panel has mounted.
+    if (!(await waitFor(() => findSourceButton(), timeoutMs))) {
         console.error('source button not found');
         return false;
     }
 
+    const sourceButton = findSourceButton();
     if (isSourceActive(sourceButton)) {
         console.log('source already active');
         return true;
     }
 
     sourceButton.click();
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-        const freshSourceButton = findSourceButton();
-        if (isSourceActive(freshSourceButton)) {
-            console.log('switched to source');
-            return true;
-        }
-        await sleep(100);
+    if (await waitFor(() => isSourceActive(findSourceButton()), timeoutMs)) {
+        console.log('switched to source');
+        return true;
     }
 
     console.error('source switch timeout');
@@ -141,9 +190,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const lines = normalizeLines(testCases);
         const value = lines.join('\n');
 
+        const isTestcaseTabReady = await ensureTestcaseTabActive(3000);
+        if (!isTestcaseTabReady) {
+            sendResponse({ success: false, reason: "Couldn't open the Testcase tab. Open it and try again." });
+            return;
+        }
+
         const isSourceReady = await ensureSourceActiveAndWait(3000);
         if (!isSourceReady) {
-            sendResponse({ success: false, reason: 'Click on the testcases tab' });
+            sendResponse({ success: false, reason: "Couldn't switch the Testcase panel to Source view." });
             return;
         }
 
@@ -163,7 +218,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             textarea.dispatchEvent(new Event('input', { bubbles: true }));
             textarea.dispatchEvent(new Event('change', { bubbles: true }));
             console.log('successful injection via textarea');
-            sendResponse({ success: true, method: 'textarea' });
+            sendResponse({ success: true, method: 'textarea', lineCount: lines.length });
             return;
         }
 
@@ -177,7 +232,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         editorContainer.dispatchEvent(new Event('input', { bubbles: true }));
         console.log('successful injection via DOM fallback');
-        sendResponse({ success: true, method: 'dom_fallback' });
+        sendResponse({ success: true, method: 'dom_fallback', lineCount: lines.length });
     };
 
     run().catch((e) => {

@@ -6,41 +6,75 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateRequiredDiv = document.getElementById('update-required');
     const updateMessage = document.getElementById('update-message');
     const updateNowButton = document.getElementById('update-now');
-    const EXTENSION_UPDATE_URL = 'https://chromewebstore.google.com/detail/leettest/diinamlcdbbpfebknmhajjaijpflnaoe';
+    const manifest = chrome.runtime.getManifest();
+    const isFirefox = typeof browser !== 'undefined' && typeof browser.runtime.getBrowserInfo === 'function';
+    const geckoId = manifest.browser_specific_settings && manifest.browser_specific_settings.gecko && manifest.browser_specific_settings.gecko.id;
+    const EXTENSION_UPDATE_URL = isFirefox && geckoId
+        ? `https://addons.mozilla.org/firefox/addon/${encodeURIComponent(geckoId)}/`
+        : 'https://chromewebstore.google.com/detail/leettest/diinamlcdbbpfebknmhajjaijpflnaoe';
     const normalizedBackendBaseUrl = (window.LEETTEST_BACKEND_BASE_URL || 'https://kohlenz.com/leettest').replace(/\/+$/, '');
     const VERSION_CHECK_URL = `${normalizedBackendBaseUrl}/version`;
-    const extensionVersion = chrome.runtime.getManifest().version;
+    const extensionVersion = manifest.version;
     window.LEETTEST_EXTENSION_VERSION = extensionVersion;
     window.LEETTEST_UPDATE_STATE = { required: false };
 
+    const { showStatus, clearStatus, getActiveProblem, formatSlug } = window.LEETTEST_UI;
+    const problemName = document.getElementById('problem-name');
     const timerSpan = document.getElementById('timer');
     let timerInterval = null;
+    let timerStart = 0;
+
+    const renderElapsed = () => {
+        timerSpan.textContent = `${Math.round(performance.now() - timerStart)}ms`;
+    };
 
     const startTimer = () => {
-        const start = performance.now();
-        timerSpan.textContent = '0.0s';
-        timerInterval = setInterval(() => {
-            const elapsed = ((performance.now() - start) / 1000).toFixed(1);
-            timerSpan.textContent = `${elapsed}s`;
-        }, 100);
+        timerStart = performance.now();
+        timerSpan.textContent = '0ms';
+        timerInterval = setInterval(renderElapsed, 16);
     };
 
     const stopTimer = () => {
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
+            // Final exact value, so fast runs don't show a stale tick.
+            renderElapsed();
         }
     };
 
+    const setLoading = (isLoading) => {
+        loadingDiv.hidden = !isLoading;
+        fetchButton.disabled = isLoading || window.LEETTEST_UPDATE_STATE.required;
+        if (isLoading) {
+            startTimer();
+        } else {
+            stopTimer();
+        }
+    };
+
+    const showError = (message) => {
+        setLoading(false);
+        showStatus(outputDiv, 'error', message);
+    };
+
+    getActiveProblem().then(({ slug }) => {
+        if (slug) {
+            problemName.textContent = formatSlug(slug);
+        } else {
+            problemName.textContent = 'Open a LeetCode problem';
+            problemName.classList.add('problem-name--empty');
+        }
+    });
+
     const setUpdateRequiredState = (message) => {
         window.LEETTEST_UPDATE_STATE.required = true;
-        loadingDiv.style.display = 'none';
-        stopTimer();
-        updateRequiredDiv.style.display = 'block';
+        setLoading(false);
+        updateRequiredDiv.hidden = false;
         updateMessage.textContent = message || 'A new version of LeetTest is required.';
         fetchButton.disabled = true;
         reportIssueButton.disabled = true;
-        outputDiv.innerHTML = '<p style="color: red;">Please update the extension to continue.</p>';
+        clearStatus(outputDiv);
     };
 
     window.LEETTEST_API = {
@@ -101,109 +135,117 @@ document.addEventListener('DOMContentLoaded', () => {
 
     checkMinimumSupportedVersion();
 
+    // Firefox MV3 treats host permissions as optional, so users can end up without them.
+    const permissionBanner = document.getElementById('permission-required');
+    const hostOrigins = { origins: manifest.host_permissions || [] };
+    const refreshPermissionBanner = () => {
+        chrome.permissions.contains(hostOrigins, (granted) => {
+            permissionBanner.hidden = !!granted;
+        });
+    };
+    document.getElementById('grant-permissions').addEventListener('click', () => {
+        chrome.permissions.request(hostOrigins, (granted) => {
+            if (granted) {
+                permissionBanner.hidden = true;
+                showStatus(outputDiv, 'info', 'Access granted. Reload your LeetCode tab to finish setup.');
+            }
+        });
+    });
+    refreshPermissionBanner();
+
     fetchButton.addEventListener('click', async () => {
         if (window.LEETTEST_UPDATE_STATE.required) {
             return;
         }
 
-        outputDiv.innerHTML = '';
-        loadingDiv.style.display = 'block';
-        startTimer();
+        clearStatus(outputDiv);
+        setLoading(true);
 
-        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-            if (tabs && tabs.length > 0) {
-                const activeTab = tabs[0];
-                if (!activeTab.url.includes('leetcode.com/problems/')) {
-                    loadingDiv.style.display = 'none';
-                    stopTimer();
-                    outputDiv.innerHTML = `<p style="color: red;">Please be on a LeetCode problem page.</p>`;
-                } else {
-                    try {
-                        const activeTabUrl = activeTab.url.split("/")[4];
-                        const response = await fetch(`${normalizedBackendBaseUrl}/api/${activeTabUrl}`, {
-                            headers: {
-                                'X-Extension-Version': extensionVersion
-                            }
-                        });
+        const { tab: activeTab, slug } = await getActiveProblem();
+        if (!activeTab) {
+            showError('No active tab found.');
+            return;
+        }
+        if (!slug) {
+            showError('Open a LeetCode problem page first.');
+            return;
+        }
 
-                        if (response.status === 426) {
-                            const errPayload = await response.json();
-                            stopTimer();
-                            setUpdateRequiredState(errPayload.message);
+        try {
+            const response = await fetch(`${normalizedBackendBaseUrl}/api/${slug}`, {
+                headers: {
+                    'X-Extension-Version': extensionVersion
+                }
+            });
+
+            if (response.status === 426) {
+                const errPayload = await response.json().catch(() => ({}));
+                setUpdateRequiredState(errPayload.message);
+                return;
+            }
+
+            if (!response.ok) {
+                const errPayload = await response.json().catch(() => ({}));
+                throw new Error(errPayload.message || errPayload.error || `Server returned ${response.status}.`);
+            }
+
+            const responseText = await response.text();
+            let generatorCode;
+            try {
+                const parsed = JSON.parse(responseText);
+                generatorCode = parsed.code || responseText;
+            } catch {
+                generatorCode = responseText;
+            }
+
+            const sandboxFrame = document.getElementById('sandbox-frame');
+            const testCases = await new Promise((resolve, reject) => {
+                let settled = false;
+                const handler = (event) => {
+                    if (settled) return;
+                    settled = true;
+                    window.removeEventListener('message', handler);
+                    clearTimeout(timer);
+                    if (event.data && event.data.success) {
+                        resolve(event.data.data);
+                    } else {
+                        reject(new Error((event.data && event.data.error) || 'Sandbox execution failed'));
+                    }
+                };
+                const timer = setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    window.removeEventListener('message', handler);
+                    reject(new Error('Test case generation timed out'));
+                }, 10000);
+                window.addEventListener('message', handler);
+                sandboxFrame.contentWindow.postMessage({ code: generatorCode }, '*');
+            });
+
+            const result = await new Promise((resolve) => {
+                chrome.tabs.sendMessage(
+                    activeTab.id,
+                    { action: 'checkButtonAndInject', data: testCases },
+                    (reply) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('sendMessage failed:', chrome.runtime.lastError.message);
+                            resolve({ success: false, reason: 'Could not reach the page. Refresh LeetCode and try again.' });
                             return;
                         }
-
-                        if (!response.ok) {
-                            const errPayload = await response.json();
-                            throw new Error(errPayload.message || 'Failed to fetch generator code.');
-                        }
-
-                        const responseText = await response.text();
-                        let generatorCode;
-                        try {
-                            const parsed = JSON.parse(responseText);
-                            generatorCode = parsed.code || responseText;
-                        } catch {
-                            generatorCode = responseText;
-                        }
-
-                        const sandboxFrame = document.getElementById('sandbox-frame');
-                        const testCases = await new Promise((resolve, reject) => {
-                            let settled = false;
-                            const handler = (event) => {
-                                if (settled) return;
-                                settled = true;
-                                window.removeEventListener('message', handler);
-                                clearTimeout(timer);
-                                if (event.data && event.data.success) {
-                                    resolve(event.data.data);
-                                } else {
-                                    reject(new Error((event.data && event.data.error) || 'Sandbox execution failed'));
-                                }
-                            };
-                            const timer = setTimeout(() => {
-                                if (settled) return;
-                                settled = true;
-                                window.removeEventListener('message', handler);
-                                reject(new Error('Test case generation timed out'));
-                            }, 10000);
-                            window.addEventListener('message', handler);
-                            sandboxFrame.contentWindow.postMessage({ code: generatorCode }, '*');
-                        });
-
-                        loadingDiv.style.display = 'none';
-                        stopTimer();
-                        outputDiv.innerHTML = `<br>Test cases generated successfully.`;
-
-                        chrome.tabs.sendMessage(
-                            activeTab.id,
-                            { action: "checkButtonAndInject", data: testCases },
-                            (result) => {
-                                if (chrome.runtime.lastError) {
-                                    console.error('sendMessage failed:', chrome.runtime.lastError.message);
-                                    loadingDiv.style.display = 'none';
-                                    outputDiv.innerHTML = `<p style="color: red;">Injection failed: ${chrome.runtime.lastError.message}</p>`;
-                                    return;
-                                }
-
-                                if (result && result.success === false) {
-                                    outputDiv.innerHTML = `<p style="color: red;">Injection failed: ${result.reason || 'unknown error'}</p>`;
-                                }
-                            }
-                        );
-                    } catch (error) {
-                        loadingDiv.style.display = 'none';
-                        stopTimer();
-                        outputDiv.innerHTML = `<p style="color: red;">Error generating test cases: ${error.message}</p>`;
-                        console.error(error);
+                        resolve(reply || { success: false, reason: 'No response from the page.' });
                     }
-                }
-            } else {
-                loadingDiv.style.display = 'none';
-                stopTimer();
-                outputDiv.innerHTML = '<p style="color: red;">No active tab found.</p>';
-                console.error('no active tab');
+                );
+            });
+
+            setLoading(false);
+            if (result.success === false) {
+                showStatus(outputDiv, 'error', result.reason || 'Injection failed.');
+                return;
             }
-        });
+            showStatus(outputDiv, 'success', `Pasted into the Testcase tab in ${timerSpan.textContent}.`);
+        } catch (error) {
+            console.error(error);
+            showError(`Couldn't generate testcases: ${error.message}`);
+        }
     });
 });

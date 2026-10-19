@@ -6,39 +6,137 @@
     <title>LeetTest</title>
     <link rel="stylesheet" href="styles.css">
     <script src="scripts/backend-config.js"></script>
+    <script src="scripts/ui.js" defer></script>
     <script src="scripts/popup.js" defer></script>
     <script src="scripts/report.js" defer></script>
+    <script src="scripts/settings.js" defer></script>
 </head>
 <body>
-    <h1>LeetTest</h1>
-    <div id="update-required" style="display: none;">
-        <p id="update-message">A new version of LeetTest is required.</p>
-        <button id="update-now">Update Extension</button>
-    </div>
-    <iframe id="sandbox-frame" src="sandbox.html" style="display:none;"></iframe>
-    <button id="fetch-data">Generate Testcases</button>
+    <iframe id="sandbox-frame" src="sandbox.html" hidden></iframe>
 
-    <div id="loading" style="display: none;">
-        <div class="spinner"></div>
-        <span id="timer">0.0s</span>
-    </div>
-    <div id="output"></div>
+    <!-- Main view -->
+    <section class="view" data-view="main">
+        <header class="header">
+            <div class="brand">
+                <img src="icons/icon-48.png" alt="" class="brand-icon">
+                <span class="brand-name">LeetTest</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-button icon-button--danger" id="report-issue" title="Report an issue" aria-label="Report an issue">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4m0 0h11l-1.5 4L16 12H5"/></svg>
+                </button>
+                <button class="icon-button" id="open-settings" title="Settings" aria-label="Settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+            </div>
+        </header>
 
-    <!-- dimming -->
-    <div id="overlay" style="display: none;"></div>
+        <div id="update-required" class="banner banner--danger" hidden>
+            <p id="update-message">A new version of LeetTest is required.</p>
+            <button id="update-now" class="button button--danger button--small">Update extension</button>
+        </div>
 
-    <!-- report button -->
-    <button id="report-issue" title="Report an Issue">!</button>
+        <div id="permission-required" class="banner banner--warning" hidden>
+            <p>LeetTest needs access to leetcode.com and its server to work.</p>
+            <button id="grant-permissions" class="button button--warning button--small">Grant access</button>
+        </div>
 
-    <!-- reports -->
-    <div id="report-menu" style="display: none;">
-        <h2>Report Issue With Question</h2>
-        <button class="report-reason" data-reason="testcases_not_loading">Testcases Not Loading</button>
-        <button class="report-reason" data-reason="constraints_not_met">Constraints Not Met</button>
-        <button class="report-reason" data-reason="poor_testcase_quality">Poor Testcase Quality</button>
-        <button class="report-reason" data-reason="other">Other</button>
-        <button id="close-report-menu">Close</button>
+        <div class="problem-card" id="problem-card">
+            <span class="problem-label">Current problem</span>
+            <span class="problem-name" id="problem-name">Detecting…</span>
+        </div>
 
-    </div>
+        <button id="fetch-data" class="button button--primary button--block">Generate Testcases</button>
+
+        <div id="loading" class="loading" hidden>
+            <div class="spinner"></div>
+            <span>Generating…</span>
+            <span id="timer">0ms</span>
+        </div>
+        <div id="output" class="status-area" aria-live="polite"></div>
+    </section>
+
+    <!-- Report view -->
+    <section class="view" data-view="report" hidden>
+        <header class="header">
+            <button class="icon-button" data-back title="Back" aria-label="Back">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="view-title">Report an issue</span>
+            <span class="header-spacer"></span>
+        </header>
+
+        <p class="view-subtitle" id="report-problem">What went wrong with this problem's testcases?</p>
+
+        <div class="option-list" role="radiogroup" aria-label="Issue type">
+            <label class="option">
+                <input type="radio" name="report-reason" value="testcases_not_loading">
+                <span class="option-body">
+                    <span class="option-title">Testcases not loading</span>
+                    <span class="option-desc">Nothing gets generated or pasted</span>
+                </span>
+            </label>
+            <label class="option">
+                <input type="radio" name="report-reason" value="constraints_not_met">
+                <span class="option-body">
+                    <span class="option-title">Constraints not met</span>
+                    <span class="option-desc">Inputs are out of range or invalid</span>
+                </span>
+            </label>
+            <label class="option">
+                <input type="radio" name="report-reason" value="poor_testcase_quality">
+                <span class="option-body">
+                    <span class="option-title">Poor testcase quality</span>
+                    <span class="option-desc">Too easy, repetitive, or misses edge cases</span>
+                </span>
+            </label>
+            <label class="option">
+                <input type="radio" name="report-reason" value="other">
+                <span class="option-body">
+                    <span class="option-title">Something else</span>
+                    <span class="option-desc">Anything not covered above</span>
+                </span>
+            </label>
+        </div>
+
+        <button id="submit-report" class="button button--danger button--block" disabled>Submit report</button>
+        <div id="report-status" class="status-area" aria-live="polite"></div>
+    </section>
+
+    <!-- Settings view -->
+    <section class="view" data-view="settings" hidden>
+        <header class="header">
+            <button class="icon-button" data-back title="Back" aria-label="Back">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="view-title">Settings</span>
+            <span class="header-spacer"></span>
+        </header>
+
+        <div class="settings-list">
+            <label class="setting">
+                <span class="setting-body">
+                    <span class="setting-title">Show numeric rating</span>
+                    <span class="setting-desc">Adds the contest rating next to Easy / Medium / Hard</span>
+                </span>
+                <input type="checkbox" class="switch" data-setting="showRating">
+            </label>
+            <label class="setting">
+                <span class="setting-body">
+                    <span class="setting-title">Show company tags</span>
+                    <span class="setting-desc">Lists companies that have asked this problem</span>
+                </span>
+                <input type="checkbox" class="switch" data-setting="showCompanies">
+            </label>
+        </div>
+
+        <p class="footnote">Changes apply to open LeetCode tabs instantly.</p>
+    </section>
+
+    <template id="icon-success"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></template>
+    <template id="icon-error"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></template>
+    <template id="icon-info"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></template>
+
+    <footer class="footer">v<span id="version"></span></footer>
 </body>
 </html>
