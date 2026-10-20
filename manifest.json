@@ -6,16 +6,12 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "leet@test.com",
-      "strict_min_version": "121.0"
-    }
-  },
-  "permissions": ["tabs", "storage"],
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
   "background": {
-    "service_worker": "scripts/background.js",
-    "scripts": ["scripts/background.js"]
+    "service_worker": "scripts/background.js"
   },
   "host_permissions": [
     "https://leetcode.com/*"
@@ -39,12 +35,18 @@
     "128": "icons/icon-128.png"
   },
   "sandbox": {
-    "pages": ["sandbox.html"]
+    "pages": [
+      "sandbox.html"
+    ]
   },
   "web_accessible_resources": [
     {
-      "resources": ["scripts/companies.json"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "scripts/companies.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

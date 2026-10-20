@@ -54,7 +54,36 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus(outputDiv, 'error', message);
     };
 
+    // LeetCode only serves Premium problem descriptions to Premium accounts, so the backend
+    // can't build a generator for them. Ask LeetCode up front (cached per slug) instead of
+    // letting the request fail with a generic error. Resolves true/false, or null if unknown.
+    const premiumChecks = new Map();
+    const isPremiumProblem = (slug) => {
+        if (!premiumChecks.has(slug)) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 3000);
+            premiumChecks.set(slug, fetch('https://leetcode.com/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: 'query isPremium($slug: String!) { question(titleSlug: $slug) { isPaidOnly } }',
+                    variables: { slug },
+                }),
+                signal: controller.signal,
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    const question = data && data.data && data.data.question;
+                    return question ? question.isPaidOnly === true : null;
+                })
+                .catch(() => null) // never block generation just because the check failed
+                .finally(() => clearTimeout(timer)));
+        }
+        return premiumChecks.get(slug);
+    };
+
     getActiveProblem().then(({ slug }) => {
+        if (slug) isPremiumProblem(slug); // start early so clicking Generate is instant
         if (slug) {
             problemName.textContent = formatSlug(slug);
         } else {
@@ -164,6 +193,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!slug) {
             showError('Open a LeetCode problem page first.');
+            return;
+        }
+        if (await isPremiumProblem(slug)) {
+            showError("LeetTest doesn't work on Premium problems. LeetCode only shares their details with Premium accounts, so we can't generate testcases for them.");
             return;
         }
 
