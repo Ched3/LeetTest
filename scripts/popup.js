@@ -178,6 +178,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     refreshPermissionBanner();
 
+    const sendMessageOnce = (tabId, message) => new Promise((resolve) => {
+        chrome.tabs.sendMessage(tabId, message, (reply) => {
+            if (chrome.runtime.lastError) {
+                resolve({ unreachable: true, error: chrome.runtime.lastError.message });
+                return;
+            }
+            resolve(reply || { success: false, reason: 'No response from the page.' });
+        });
+    });
+
+    // Tabs opened before LeetTest was installed/updated have no content script listening.
+    // Inject it (the scripts are safe to run twice) and try once more; if even that fails,
+    // fall back to asking the user to refresh.
+    const sendToPage = async (tabId, message) => {
+        const first = await sendMessageOnce(tabId, message);
+        if (!first.unreachable) return first;
+
+        try {
+            await chrome.scripting.executeScript({ target: { tabId }, files: manifest.content_scripts[0].js });
+        } catch (error) {
+            console.error('content script injection failed:', error);
+            return { success: false, needsReload: true };
+        }
+        const second = await sendMessageOnce(tabId, message);
+        return second.unreachable ? { success: false, needsReload: true } : second;
+    };
+
     fetchButton.addEventListener('click', async () => {
         if (window.LEETTEST_UPDATE_STATE.required) {
             return;
@@ -251,22 +278,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 sandboxFrame.contentWindow.postMessage({ code: generatorCode }, '*');
             });
 
-            const result = await new Promise((resolve) => {
-                chrome.tabs.sendMessage(
-                    activeTab.id,
-                    { action: 'checkButtonAndInject', data: testCases },
-                    (reply) => {
-                        if (chrome.runtime.lastError) {
-                            console.error('sendMessage failed:', chrome.runtime.lastError.message);
-                            resolve({ success: false, reason: 'Could not reach the page. Refresh LeetCode and try again.' });
-                            return;
-                        }
-                        resolve(reply || { success: false, reason: 'No response from the page.' });
-                    }
-                );
-            });
+            const result = await sendToPage(activeTab.id, { action: 'checkButtonAndInject', data: testCases });
 
             setLoading(false);
+            if (result.needsReload) {
+                showStatus(outputDiv, 'error',
+                    'This LeetCode tab was open before LeetTest was installed or updated. Refresh the page, then try again.',
+                    { action: { label: 'Refresh page', onClick: () => { chrome.tabs.reload(activeTab.id); window.close(); } } });
+                return;
+            }
             if (result.success === false) {
                 showStatus(outputDiv, 'error', result.reason || 'Injection failed.');
                 return;

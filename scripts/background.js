@@ -73,3 +73,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
 });
+
+// Browsers only add content scripts to pages loaded after install/update, so LeetCode tabs
+// that are already open would show no ratings/tags and couldn't receive testcases until a
+// refresh. Inject into them now. The scripts guard against running twice.
+chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+    if (reason !== 'install' && reason !== 'update') return;
+    const { js, matches } = chrome.runtime.getManifest().content_scripts[0];
+    try {
+        const tabs = await chrome.tabs.query({ url: matches });
+        await Promise.all(tabs.map((tab) =>
+            chrome.scripting.executeScript({ target: { tabId: tab.id }, files: js })
+                .catch((err) => console.warn(`could not inject into tab ${tab.id}:`, err))
+        ));
+    } catch (err) {
+        console.warn('injecting into open LeetCode tabs failed:', err);
+    }
+});

@@ -8,15 +8,27 @@
     };
 
     // Renders a status pill into `container`. Returns the element so callers can remove it.
-    const showStatus = (container, type, message, { autoHideMs = 0 } = {}) => {
+    // `action` adds a small button under the message: { label, onClick }.
+    const showStatus = (container, type, message, { autoHideMs = 0, action = null } = {}) => {
         container.replaceChildren();
         const el = document.createElement('div');
         el.className = `status status--${type}`;
         const icon = document.getElementById(`icon-${type}`) || document.getElementById('icon-info');
         el.appendChild(icon.content.cloneNode(true));
+        const body = document.createElement('div');
+        body.className = 'status-body';
         const text = document.createElement('span');
         text.textContent = message;
-        el.appendChild(text);
+        body.appendChild(text);
+        if (action) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'status-action';
+            button.textContent = action.label;
+            button.addEventListener('click', action.onClick);
+            body.appendChild(button);
+        }
+        el.appendChild(body);
         container.appendChild(el);
 
         if (autoHideMs > 0) {

@@ -7,8 +7,8 @@
     "default_popup": "popup.html"
   },
   "permissions": [
-    "tabs",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "background": {
     "service_worker": "scripts/background.js"
